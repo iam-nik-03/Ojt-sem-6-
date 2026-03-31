@@ -1,0 +1,5 @@
+{
+  "name": "SkillStudio",
+  "description": "A modern web-based learning platform with YouTube and Google Drive integration, secure authentication, and progress tracking.",
+  "requestFramePermissions": []
+}

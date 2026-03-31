@@ -1,0 +1,109 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "03xnik@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasOnly(['uid', 'email', 'displayName', 'photoURL', 'role', 'createdAt', 'isBlocked']) &&
+             data.uid is string && data.uid.size() > 0 &&
+             data.email is string && data.email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$") &&
+             data.role in ['admin', 'user'] &&
+             (data.isBlocked is bool || !('isBlocked' in data));
+    }
+
+    function isValidCourse(data) {
+      return data.keys().hasOnly(['id', 'title', 'description', 'thumbnail', 'authorId', 'isPublic', 'sourceType', 'path', 'rootFolderId', 'lastSyncTime', 'createdAt', 'updatedAt']) &&
+             data.title is string && data.title.size() > 0 && data.title.size() < 200 &&
+             data.authorId is string && data.authorId == request.auth.uid &&
+             data.sourceType in ['local', 'gdrive', 'youtube'];
+    }
+
+    function isValidModule(data) {
+      return data.keys().hasOnly(['id', 'courseId', 'title', 'orderIndex']) &&
+             data.id is string && data.courseId is string &&
+             data.title is string && data.title.size() > 0 &&
+             data.orderIndex is int;
+    }
+
+    function isValidLesson(data) {
+      return data.keys().hasOnly(['id', 'moduleId', 'courseId', 'title', 'type', 'fileName', 'drive_id', 'youtubeId', 'duration', 'orderIndex']) &&
+             data.id is string && data.moduleId is string && data.courseId is string &&
+             data.title is string && data.title.size() > 0 &&
+             data.type in ['video', 'youtube', 'pdf'] &&
+             data.orderIndex is int;
+    }
+
+    function isValidProgress(data) {
+      return data.keys().hasOnly(['lessonId', 'courseId', 'uid', 'completed', 'lastPosition', 'updatedAt']) &&
+             data.lessonId is string && data.courseId is string &&
+             data.uid is string && data.uid == request.auth.uid &&
+             data.completed is bool;
+    }
+
+    function isValidNote(data) {
+      return data.keys().hasOnly(['id', 'courseId', 'lessonId', 'uid', 'text', 'timestamp', 'createdAt']) &&
+             data.id is string && data.courseId is string && data.lessonId is string &&
+             data.uid is string && data.uid == request.auth.uid &&
+             data.text is string && data.text.size() > 0 && data.text.size() < 5000;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isAuthenticated() && isValidUser(request.resource.data) && (isOwner(userId) && request.resource.data.role == 'user' || isAdmin());
+      allow update: if isAuthenticated() && isValidUser(request.resource.data) && (
+        (isOwner(userId) && request.resource.data.role == resource.data.role && request.resource.data.isBlocked == resource.data.isBlocked) || 
+        isAdmin()
+      );
+    }
+
+    match /courses/{courseId} {
+      allow read: if resource.data.isPublic == true || (isAuthenticated() && resource.data.authorId == request.auth.uid) || isAdmin();
+      allow create: if isAuthenticated() && isValidCourse(request.resource.data);
+      allow update: if isAuthenticated() && isValidCourse(request.resource.data) && (resource.data.authorId == request.auth.uid || isAdmin());
+      allow delete: if isAuthenticated() && (resource.data.authorId == request.auth.uid || isAdmin());
+    }
+
+    match /modules/{moduleId} {
+      allow read: if true; // Modules are public if course is public, but we'll simplify for now
+      allow write: if isAdmin();
+    }
+
+    match /lessons/{lessonId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /progress/{progressId} {
+      allow read: if isAuthenticated() && (resource.data.uid == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && isValidProgress(request.resource.data);
+      allow update: if isAuthenticated() && isValidProgress(request.resource.data) && (resource.data.uid == request.auth.uid || isAdmin());
+    }
+
+    match /notes/{noteId} {
+      allow read: if isAuthenticated() && (resource.data.uid == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && isValidNote(request.resource.data);
+      allow update: if isAuthenticated() && isValidNote(request.resource.data) && (resource.data.uid == request.auth.uid || isAdmin());
+      allow delete: if isAuthenticated() && (resource.data.uid == request.auth.uid || isAdmin());
+    }
+  }
+}

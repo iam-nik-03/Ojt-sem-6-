@@ -1,0 +1,124 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string", "format": "uri" },
+        "role": { "type": "string", "enum": ["admin", "user"] },
+        "isBlocked": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "Course": {
+      "title": "Course",
+      "description": "Learning course details",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "thumbnail": { "type": "string", "format": "uri" },
+        "authorId": { "type": "string" },
+        "isPublic": { "type": "boolean" },
+        "sourceType": { "type": "string", "enum": ["local", "gdrive", "youtube"] },
+        "path": { "type": "string" },
+        "rootFolderId": { "type": "string" },
+        "lastSyncTime": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "authorId", "sourceType"]
+    },
+    "Module": {
+      "title": "Module",
+      "description": "Course module",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "courseId": { "type": "string" },
+        "title": { "type": "string" },
+        "orderIndex": { "type": "integer" }
+      },
+      "required": ["id", "courseId", "title", "orderIndex"]
+    },
+    "Lesson": {
+      "title": "Lesson",
+      "description": "Course lesson",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "moduleId": { "type": "string" },
+        "courseId": { "type": "string" },
+        "title": { "type": "string" },
+        "type": { "type": "string", "enum": ["video", "youtube", "pdf"] },
+        "fileName": { "type": "string" },
+        "drive_id": { "type": "string" },
+        "youtubeId": { "type": "string" },
+        "duration": { "type": "number" },
+        "orderIndex": { "type": "integer" }
+      },
+      "required": ["id", "moduleId", "courseId", "title", "type", "orderIndex"]
+    },
+    "Progress": {
+      "title": "Progress",
+      "description": "User progress on a lesson",
+      "type": "object",
+      "properties": {
+        "lessonId": { "type": "string" },
+        "courseId": { "type": "string" },
+        "uid": { "type": "string" },
+        "completed": { "type": "boolean" },
+        "lastPosition": { "type": "number" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["lessonId", "courseId", "uid", "completed"]
+    },
+    "Note": {
+      "title": "Note",
+      "description": "User note on a lesson",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "courseId": { "type": "string" },
+        "lessonId": { "type": "string" },
+        "uid": { "type": "string" },
+        "text": { "type": "string" },
+        "timestamp": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "courseId", "lessonId", "uid", "text"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/courses/{courseId}": {
+      "schema": "Course",
+      "description": "Available courses"
+    },
+    "/modules/{moduleId}": {
+      "schema": "Module",
+      "description": "Course modules"
+    },
+    "/lessons/{lessonId}": {
+      "schema": "Lesson",
+      "description": "Course lessons"
+    },
+    "/progress/{progressId}": {
+      "schema": "Progress",
+      "description": "User progress tracking"
+    },
+    "/notes/{noteId}": {
+      "schema": "Note",
+      "description": "User notes"
+    }
+  }
+}
